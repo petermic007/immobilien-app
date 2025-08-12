@@ -1,4 +1,3 @@
-\
 #define MyAppName "Immobilien Rechner"
 #define MyAppVersion "1.0.0"
 #define MyAppExeName "ImmobilienRechner.exe"
@@ -14,13 +13,10 @@ OutputDir=dist-installer
 OutputBaseFilename=ImmobilienRechner-Setup
 Compression=lzma
 SolidCompression=yes
-SetupIconFile=assets\app.ico
 WizardStyle=modern
 ArchitecturesInstallIn64BitMode=x64
 UninstallDisplayIcon={app}\{#MyAppExeName}
-
-[Languages]
-Name: "german"; MessagesFile: "compiler:Languages\German.isl"
+; SetupIconFile=assets\app.ico   ; <- optional: wenn du ein Icon hast, diese Zeile ohne Strichpunkt lassen
 
 [Files]
 Source: "dist\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
