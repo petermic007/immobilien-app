@@ -1,6 +1,6 @@
 name: Build Windows EXE & Installer
 on:
-  workflow_dispatch:        # manuell startbar
+  workflow_dispatch:
   push:
     paths:
       - "**.py"
@@ -17,19 +17,39 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Show repo tree (debug)
+        run: |
+          echo "Listing repo files:"
+          dir
+          if not exist assets\app.ico (echo "ERROR: assets\app.ico fehlt" & exit 1)
+          if not exist installer.iss (echo "ERROR: installer.iss fehlt" & exit 1)
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"     # stabil für Streamlit/Numpy/Matplotlib
+          python-version: "3.12"
 
       - name: Install deps
         run: |
           python -m pip install --upgrade pip wheel setuptools
           pip install -r requirements-win.txt
-          pip install pyinstaller
+          pip install pyinstaller==6.6.0
+
+      - name: Print versions (debug)
+        run: |
+          python -V
+          python -c "import sys; print(sys.executable)"
+          python -c "import numpy, matplotlib, pandas, streamlit; print('numpy', numpy.__version__, 'matplotlib', matplotlib.__version__)"
 
       - name: Build EXE (PyInstaller)
-        run: pyinstaller --noconfirm --onefile --windowed --icon=assets\app.ico --name "ImmobilienRechner" launcher.py
+        run: >
+          pyinstaller --noconfirm --onefile --windowed
+          --icon=assets\app.ico
+          --name "ImmobilienRechner"
+          launcher.py
+
+      - name: Check dist (debug)
+        run: dir dist
 
       - name: Upload EXE artifact
         uses: actions/upload-artifact@v4
@@ -37,11 +57,11 @@ jobs:
           name: ImmobilienRechner-exe
           path: dist\ImmobilienRechner.exe
 
-      - name: Install Inno Setup
-        run: choco install innosetup --yes --limit-output
+      - name: Setup Inno Setup
+        uses: MinchinWeb/setup-innosetup@v1.2
 
       - name: Build Installer (.iss)
-        run: '"C:\Program Files (x86)\Inno Setup 6\ISCC.exe" ".\installer.iss"'
+        run: iscc .\installer.iss
 
       - name: Upload Installer artifact
         uses: actions/upload-artifact@v4
