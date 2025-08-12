@@ -1,71 +1,32 @@
-name: Build Windows EXE & Installer
-on:
-  workflow_dispatch:
-  push:
-    paths:
-      - "**.py"
-      - "requirements*.txt"
-      - "installer.iss"
-      - "assets/**"
-      - ".github/workflows/build-windows.yml"
+#define MyAppName "Immobilien Rechner"
+#define MyAppVersion "1.0.0"
+#define MyAppExeName "ImmobilienRechner.exe"
 
-jobs:
-  build:
-    runs-on: windows-latest
+[Setup]
+AppId={{8A3B3C47-2C5D-4F7A-9D1C-IMMO-2025}}
+AppName={#MyAppName}
+AppVersion={#MyAppVersion}
+DefaultDirName={pf}\{#MyAppName}
+DefaultGroupName={#MyAppName}
+DisableProgramGroupPage=yes
+OutputDir=dist-installer
+OutputBaseFilename=ImmobilienRechner-Setup
+Compression=lzma
+SolidCompression=yes
+WizardStyle=modern
+ArchitecturesInstallIn64BitMode=x64
+UninstallDisplayIcon={app}\{#MyAppExeName}
+; SetupIconFile=assets\app.ico   ; <- optional: wenn du ein Icon hast, diese Zeile ohne Strichpunkt lassen
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+[Files]
+Source: "dist\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
 
-      # Icon optional machen & installer.iss ggf. anpassen
-      - name: Prepare icon (optional)
-        shell: powershell
-        run: |
-          if (Test-Path assets\app.ico) {
-            echo "ICON=--icon=assets\app.ico" | Out-File -FilePath $env:GITHUB_ENV -Append
-            Write-Host "Icon found: assets\app.ico"
-          } else {
-            echo "ICON=" | Out-File -FilePath $env:GITHUB_ENV -Append
-            Write-Host "No icon found -> building without icon"
-            if (Test-Path installer.iss) {
-              (Get-Content installer.iss) -replace '^\s*SetupIconFile=.*$', '; SetupIconFile removed by CI' | Set-Content installer.iss
-            }
-          }
+[Icons]
+Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
+Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
+[Tasks]
+Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
 
-      - name: Install deps
-        shell: powershell
-        run: |
-          python -m pip install --upgrade pip wheel setuptools
-          if (Test-Path requirements-win.txt) { pip install -r requirements-win.txt }
-          elseif (Test-Path requirements.txt) { pip install -r requirements.txt }
-          else { pip install streamlit pandas numpy matplotlib numpy-financial }
-          pip install pyinstaller==6.6.0
-
-      - name: Build EXE (PyInstaller)
-        shell: powershell
-        run: pyinstaller --noconfirm --onefile --windowed $env:ICON --name "ImmobilienRechner" launcher.py
-
-      - name: Upload EXE artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ImmobilienRechner-exe
-          path: dist\ImmobilienRechner.exe
-
-      - name: Install Inno Setup
-        shell: powershell
-        run: choco install innosetup --yes --no-progress
-
-      - name: Build Installer (.iss)
-        shell: powershell
-        run: '& "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" ".\installer.iss"'
-
-      - name: Upload Installer artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ImmobilienRechner-Setup
-          path: dist-installer\ImmobilienRechner-Setup.exe
+[Run]
+Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#MyAppName}}"; Flags: nowait postinstall skipifsilent
